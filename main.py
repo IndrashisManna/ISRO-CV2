@@ -1,75 +1,76 @@
-import cv2
+import tkinter as tk
+from PIL import ImageTk, Image
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 import numpy as np
 
-def detect_red_cylinder(frame):
-    # Convert BGR to HSV
-    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
-    # Define range of red color in HSV
-    lower_red = np.array([0, 100, 100])
-    upper_red = np.array([10, 255, 255])
+class RoverGUI:
+    def __init__(self, master):
+        self.master = master
+        self.master.title("Rover Display")
 
-    # Threshold the HSV image to get only red colors
-    mask = cv2.inRange(hsv, lower_red, upper_red)
+        # Create frames for each section of the GUI
+        self.frames = {}
+        for i in range(3):
+            for j in range(2):
+                self.frames[(i, j)] = tk.Frame(master, width=300, height=200, borderwidth=2, relief=tk.RIDGE)
+                self.frames[(i, j)].grid(row=i, column=j, padx=5, pady=5)
 
-    # Bitwise-AND mask and original image
-    res = cv2.bitwise_and(frame, frame, mask=mask)
+        # Display video from cam 1 (Screen 0,0)
+        self.display_video("cam1.jpg", (0, 0))
 
-    # Convert to grayscale
-    gray = cv2.cvtColor(res, cv2.COLOR_BGR2GRAY)
+        # Display video from cam 2 (Screen 0,1)
+        self.display_video("cam2.jpg", (0, 1))
 
-    # Apply GaussianBlur to reduce noise
-    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+        # Display values of 5 movement sensors (Screen 1,0)
+        self.display_sensor_values((1, 0))
 
-    # Use HoughCircles to detect circles
-    circles = cv2.HoughCircles(blurred, cv2.HOUGH_GRADIENT, dp=1, minDist=50, param1=50, param2=30, minRadius=10, maxRadius=100)
+        # Display path traversal animation (Screen 1,1)
+        self.display_path_animation((1, 1))
+
+        # Display gyroscopic value by animation (Screen 2,0)
+        self.display_gyro_animation((2, 0))
+
+        # Display continuous graph of signal strength (Screen 2,1)
+        self.display_signal_graph((2, 1))
+
+    def display_video(self, image_path, position):
+        img = ImageTk.PhotoImage(Image.open(image_path).resize((150, 100), Image.ANTIALIAS))
+        label = tk.Label(self.frames[position], image=img)
+        label.image = img  # Keep a reference to avoid garbage collection
+        label.pack()
+
+    def display_sensor_values(self, position):
+        sensor_values = ["Sensor 1: 50", "Sensor 2: 40", "Sensor 3: 60", "Sensor 4: 55", "Sensor 5: 45"]
+        text = "\n".join(sensor_values)
+        label = tk.Label(self.frames[position], text=text)
+        label.pack()
+
+    def display_path_animation(self, position):
+        # Placeholder for path traversal animation
+        canvas = tk.Canvas(self.frames[position], width=150, height=100, bg="white")
+        canvas.create_line(10, 10, 50, 50, fill="blue", width=2)
+        canvas.pack()
+
+    def display_gyro_animation(self, position):
+        # Placeholder for gyroscopic animation
+        canvas = tk.Canvas(self.frames[position], width=150, height=100, bg="white")
+        canvas.create_oval(10, 10, 50, 50, fill="green")
+        canvas.pack()
+
+    def display_signal_graph(self, position):
+        # Placeholder for signal strength graph
+        fig, ax = plt.subplots()
+        x = np.linspace(0, 10, 100)
+        y = np.sin(x)
+        ax.plot(x, y)
+
+        canvas = FigureCanvasTkAgg(fig, master=self.frames[position])
+        canvas.draw()
+        canvas.get_tk_widget().pack()
 
 
-    # Draw detected circles
-    if circles is not None:
-        circles = np.uint16(np.around(circles))
-        for i in circles[0, :]:
-            cv2.circle(frame, (i[0], i[1]), i[2], (0, 255, 0), 2)
-            confidence = calculate_confidence(i[2])
-            cv2.putText(frame, f'Confidence: {confidence:.2f}', (i[0] - 50, i[1] + 20),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-
-
-    return frame
-
-def calculate_confidence(radius):
-
-    min_radius = 10  # Minimum radius considered as low confidence
-    max_radius = 100  # Maximum radius considered as high confidence
-    confidence = (radius - min_radius) / (max_radius - min_radius)
-    confidence = max(0, min(1, confidence))  # Ensure confidence is between 0 and 1
-    return confidence
-def calculate_confidence(radius):
-
-    min_radius = 10  # Minimum radius considered as low confidence
-    max_radius = 100  # Maximum radius considered as high confidence
-    confidence = (radius - min_radius) / (max_radius - min_radius)
-    confidence = max(0, min(1, confidence))  # Ensure confidence is between 0 and 1
-    return confidence
-
-def main():
-    path=r'C:\Users\Indrashis\Videos\Edit\John  Wick.mp4'
-    cap = cv2.VideoCapture(path)
-
-
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            print("Error: Couldn't capture frame.")
-            break
-
-        detected_frame = detect_red_cylinder(frame)
-        cv2.imshow('Red Cylinder Detection', detected_frame)
-
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
-    cap.release()
-    cv2.destroyAllWindows()
-
-if __name__ == "__main__":
-    main()
+root = tk.Tk()
+app = RoverGUI(root)
+root.mainloop()
